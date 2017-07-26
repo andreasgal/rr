@@ -12,6 +12,7 @@
 #include <limits.h>
 #include <limits>
 #include <linux/capability.h>
+#include <linux/dqblk_xfs.h>
 #include <linux/ethtool.h>
 #include <linux/fs.h>
 #include <linux/futex.h>
@@ -3713,6 +3714,9 @@ static Switchable rec_prepare_syscall_arch(RecordTask* t,
         case Q_GETFMT:
           syscall_state.reg_parameter<int>(4);
           break;
+        case Q_XGETQSTAT:
+          syscall_state.reg_parameter<typename Arch::fs_quota_stat>(4);
+          break;
         case Q_SETQUOTA:
           FATAL() << "Trying to set disk quota usage, this may interfere with "
                      "rr recording";
@@ -5121,6 +5125,7 @@ static void rec_process_syscall_arch(RecordTask* t,
         case Q_QUOTAOFF:
         case Q_SETINFO:
         case Q_SYNC:
+        case Q_XGETQSTAT:
           break;
         default: {
           auto ret = t->regs().syscall_result_signed();

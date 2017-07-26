@@ -25,6 +25,7 @@
 #include <linux/aio_abi.h>
 #include <linux/audit.h>
 #include <linux/capability.h>
+#include <linux/dqblk_xfs.h>
 #include <linux/ethtool.h>
 #include <linux/filter.h>
 #include <linux/fs.h>
