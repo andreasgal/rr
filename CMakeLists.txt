@@ -524,6 +524,12 @@ if (x86ish)
   set(RR_SOURCES ${RR_SOURCES} src/test/x86/cpuid_loop.S)
 endif()
 
+option(asan "Build with address santitizer enabled.")
+if (asan)
+  set(ASAN_FLAGS "-fsanitize=address")
+  set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
+endif()
+
 set_source_files_properties(${RR_SOURCES}
                             PROPERTIES COMPILE_FLAGS ${RR_FLAGS})
 
@@ -557,6 +563,9 @@ option(strip "Strip debug info from rr binary")
 set(RR_MAIN_LINKER_FLAGS ${LINKER_FLAGS})
 if(strip)
   set(RR_MAIN_LINKER_FLAGS "-s ${RR_MAIN_LINKER_FLAGS}")
+endif()
+if (asan)
+  set(RR_MAIN_LINKER_FLAGS " ${ASAN_FLAGS} ${RR_MAIN_LINKER_FLAGS}")
 endif()
 
 target_link_libraries(rr
