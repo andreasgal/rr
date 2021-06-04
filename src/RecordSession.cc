@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -2036,24 +2037,29 @@ static void inject_ld_helper_library(vector<string>& env,
 }
 
 void strip_outer_ld_preload(vector<string>& env) {
-  auto env_assignment = "LD_PRELOAD=";
+  string env_assignment = "LD_PRELOAD=";
   auto it = env.begin();
   for (; it != env.end(); ++it) {
     if (it->find(env_assignment) != 0) {
       continue;
     }
-    size_t colon_pos = it->find(":");
-    if (colon_pos != string::npos) {
-      // If the preload library is loaded at all, it must be first
-      size_t preload_pos = it->find("librrpreload");
-      if (preload_pos < colon_pos) {
-        string new_ld_preload = it->substr(++colon_pos);
-        *it = env_assignment + new_ld_preload;
-        return;
-      } else {
-        DEBUG_ASSERT(preload_pos == string::npos);
+    istringstream st = istringstream(it->substr(env_assignment.length()));
+    string new_ld_preload;
+    string lib;
+    while (getline(st, lib, ':')) {
+      if (lib.empty()) {
+        continue;
       }
+      if (lib.find("librrpreload") != string::npos) {
+        continue;
+      }
+      if (!new_ld_preload.empty()) {
+        new_ld_preload += ":";
+      }
+      new_ld_preload += lib;
     }
+    *it = env_assignment + new_ld_preload;
+    return;
   }
 }
 
