@@ -3593,6 +3593,60 @@ static void copy_mem_mapping(Task* from, Task* to, const KernelMapping& km) {
   }
 }
 
+static void copy_mem_mapping_just_used(Task* from, Task* to, const KernelMapping& km)
+{
+  char path[PATH_MAX];
+  sprintf(path, "/proc/%d/pagemap", from->tid);
+
+  ScopedFd fd(path, O_RDONLY);
+  if (!fd.is_open()) {
+    FATAL() << "Failed to open " << path;
+  }
+
+  size_t pagesize = page_size();
+  void* p = (void*)km.start().as_int();
+  const auto MAP_SIZE = km.size();
+#if defined(__i386__)
+  const auto BUF_PAGE_COUNT = 64*1024;
+#else
+  const auto BUF_PAGE_COUNT = 1024*1024;
+#endif
+
+  uint64_t* buf = new uint64_t[BUF_PAGE_COUNT];
+  uint64_t pages_present = 0;
+  for (uintptr_t offset = 0; offset < MAP_SIZE; offset += pagesize*BUF_PAGE_COUNT) {
+    pread(fd, buf, BUF_PAGE_COUNT*sizeof(uint64_t), 8*(((uintptr_t)p + offset)/pagesize));
+    for (size_t i = 0; i < BUF_PAGE_COUNT; ++i) {
+      if (buf[i] & (1LL << 63)) {
+        auto start = km.start() + offset + i * pagesize;
+        if (start >= km.end()) {
+          break;
+        }
+        ++pages_present;
+
+        /* check for consecutive used pages */
+        size_t j = i;
+        for (; buf[j + 1] & (1LL << 63) && j < BUF_PAGE_COUNT-1;) {
+          if (km.start() + offset + j * pagesize + pagesize >= km.end()) {
+            break;
+          }
+          ++j;
+          ++pages_present;
+        }
+
+        auto end = km.start() + offset + j * pagesize + pagesize;
+        LOG(debug) << km << " copying start: 0x" << std::hex << start << " end: 0x" << end
+                   << std::dec << " pages: " << (end - start) / pagesize;
+        auto page = km.subrange(start, end);
+        copy_mem_mapping(from, to, page);
+        i = j;
+      }
+    }
+  }
+  delete[] buf;
+  LOG(debug) << km << " pages_present: " << pages_present << " pages_total: " << km.size() / pagesize;
+}
+
 static void move_vdso_mapping(AutoRemoteSyscalls &remote, const KernelMapping &km) {
   for (const auto& m : remote.task()->vm()->maps()) {
     if  (m.map.is_vdso() && m.map.start() != km.start()) {
@@ -3679,6 +3733,10 @@ void Task::dup_from(Task *other) {
       create_mapping(this, remote_this, km);
       LOG(debug) << "Copying mapping into " << tid;
       if (!(km.flags() & MAP_SHARED)) {
+        if (km.flags() & (MAP_ANONYMOUS | MAP_NORESERVE)) {
+          copy_mem_mapping_just_used(other, this, km);
+          continue;
+        }
         copy_mem_mapping(other, this, km);
       }
     }

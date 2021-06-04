@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <sys/utsname.h>
 
 #include <sstream>
@@ -205,9 +206,29 @@ bool parse_global_option(std::vector<std::string>& args) {
 
 using namespace rr;
 
+static void prepare_test_copy_mem_mapping_just_used() {
+#if 0
+  char* addr = (char*)0x5a0000000000;
+  void* ret = mmap(addr,
+                   page_size() * 0x40,
+                   PROT_READ | PROT_WRITE,
+                   MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+  if (ret == MAP_FAILED) {
+    DEBUG_ASSERT(0 && "mmap failed.");
+  }
+  //memset(addr, 0xaa, page_size() * 1);
+  //memset(addr, 0xaa, page_size() * 0x40);
+  //memset(addr + page_size() * (0x40-1), 0xaa, page_size() * 1);
+  memset(addr + page_size() * (0x40-3), 0xaa, page_size() * 2);
+  //memset(addr + page_size() * (0x40-2), 0xaa, page_size() * 2);
+#endif
+}
+
 int main(int argc, char* argv[]) {
   init_random();
   raise_resource_limits();
+
+  prepare_test_copy_mem_mapping_just_used();
 
   vector<string> args;
   for (int i = 1; i < argc; ++i) {
