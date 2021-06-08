@@ -2236,6 +2236,15 @@ static string lookup_by_path(const string& name) {
     env.push_back("SYSTEMD_RDRAND=0");
   }
 
+#if defined(__SANITIZE_ADDRESS__)
+  //  1. This is needed to run the test suite with an ASan-instrumented rr
+  //     because of rr's lack of support for children execing ASan binaries,
+  //     and should be removed if/when rr gains such support.
+  //  2. This is specific to the case of running the test suite
+  //     and isn't supposed to help with general usage.
+  env.push_back("ASAN_OPTIONS=verify_asan_link_order=0");
+#endif
+
   shr_ptr session(
       new RecordSession(full_path, argv, env, disable_cpuid_features,
                         syscallbuf, syscallbuf_desched_sig, bind_cpu,
