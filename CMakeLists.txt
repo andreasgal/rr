@@ -528,6 +528,37 @@ option(asan "Build with address santitizer enabled.")
 if (asan)
   set(ASAN_FLAGS "-fsanitize=address")
   set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
+
+  # ==3452708==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
+  list(APPEND DISABLED_TESTS ignore_nested)
+  list(APPEND DISABLED_TESTS ignore_nested-no-syscallbuf)
+  list(APPEND DISABLED_TESTS ignore_nested-32)
+  list(APPEND DISABLED_TESTS ignore_nested-32-no-syscallbuf)
+
+  # ==278218==ERROR: AddressSanitizer: requested allocation size 0x20000000000 (0x20000001000 after adjustments for alignment, red zones etc.) exceeds maximum supported size of 0x10000000000 (thread T0)
+  list(APPEND DISABLED_TESTS nested_detach)
+  list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
+  list(APPEND DISABLED_TESTS nested_detach-32)
+  list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
+
+  # ==249576==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
+  list(APPEND DISABLED_TESTS nested_detach_wait)
+  list(APPEND DISABLED_TESTS nested_detach_wait-no-syscallbuf)
+  list(APPEND DISABLED_TESTS nested_detach_wait-32)
+  list(APPEND DISABLED_TESTS nested_detach_wait-32-no-syscallbuf)
+
+  # FAILED: subshell died, no need to longer wait for 'sleeping'
+  list(APPEND DISABLED_TESTS nested_detach_kill)
+  list(APPEND DISABLED_TESTS nested_detach_kill-no-syscallbuf)
+  list(APPEND DISABLED_TESTS nested_detach_kill-32)
+  list(APPEND DISABLED_TESTS nested_detach_kill-32-no-syscallbuf)
+
+  # ==3452437==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
+  list(APPEND DISABLED_TESTS record_replay)
+  list(APPEND DISABLED_TESTS record_replay-no-syscallbuf)
+  list(APPEND DISABLED_TESTS record_replay-32)
+  list(APPEND DISABLED_TESTS record_replay-32-no-syscallbuf)
+
 endif()
 
 set_source_files_properties(${RR_SOURCES}
@@ -1591,6 +1622,11 @@ if(BUILD_TESTS)
   endfunction(configure_test)
 
   function(rr_add_test test command testname syscallbuf bin_dir timeout)
+    list (FIND DISABLED_TESTS "${test}" _index)
+    if (${_index} GREATER -1)
+      message("Test disabled: ${test}")
+      return()
+    endif()
     add_test("${test}" "bash" "${command}" "${testname}" "${syscallbuf}" "${bin_dir}" "${timeout}")
     configure_test(${test})
   endfunction(rr_add_test)
