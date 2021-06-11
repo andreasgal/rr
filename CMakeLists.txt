@@ -514,6 +514,7 @@ set(RR_SOURCES
   src/VirtualPerfCounterMonitor.cc
   src/util.cc
   src/WaitStatus.cc
+  src/Wine.cc
   ${CMAKE_CURRENT_BINARY_DIR}/rr_trace.capnp.c++
   ${BLAKE_ARCH_DIR}/blake2b.c
 )
@@ -597,8 +598,10 @@ set(RR_GDB_RESOURCES
   64bit-seg.xml
   64bit-sse.xml
   amd64-avx-linux.xml
+  amd64-avx-wine.xml
   amd64-linux.xml
   i386-avx-linux.xml
+  i386-avx-wine.xml
   i386-linux.xml
   aarch64-core.xml
   aarch64-fpu.xml
@@ -1297,6 +1300,7 @@ set(TESTS_WITH_PROGRAM
   sysconf_onln
   target_fork
   target_process
+  target_wine
   term_nonmain
   term_rr
   term_trace_reset

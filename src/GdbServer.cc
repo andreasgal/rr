@@ -773,6 +773,10 @@ void GdbServer::dispatch_debugger_request(Session& session,
       dbg->reply_tls_addr(ok, address);
       return;
     }
+    case DREQ_GET_LIBRARY_LIST: {
+      dbg->reply_get_library_list(target);
+      return;
+    }
     default:
       FATAL() << "Unknown debugger request " << req.type;
   }
@@ -920,6 +924,13 @@ void GdbServer::maybe_notify_stop(const GdbRequest& req,
   remote_ptr<void> watch_addr;
   char watch[1024];
   watch[0] = '\0';
+  if (dbg->features().target_wine && break_status.executable_mappings_changed) {
+    snprintf(watch, sizeof(watch) - 1, "library:;");
+    do_stop = true;
+    memset(&stop_siginfo, 0, sizeof(stop_siginfo));
+    stop_siginfo.si_signo = SIGTRAP;
+    LOG(debug) << "Notify GDB about a shared library change";
+  }
   if (!break_status.watchpoints_hit.empty()) {
     do_stop = true;
     memset(&stop_siginfo, 0, sizeof(stop_siginfo));
@@ -1747,7 +1758,9 @@ void GdbServer::serve_replay(const ConnectionFlags& flags) {
 
   do {
     LOG(debug) << "initializing debugger connection";
-    dbg = await_connection(t, listen_fd, GdbConnection::Features());
+    GdbConnection::Features features;
+    features.target_wine = target.target_wine;
+    dbg = await_connection(t, listen_fd, features);
     activate_debugger();
 
     GdbRequest last_resume_request;
@@ -1798,7 +1811,8 @@ static bool needs_target(const string& option) {
 void GdbServer::launch_gdb(ScopedFd& params_pipe_fd,
                            const string& gdb_binary_file_path,
                            const vector<string>& gdb_options,
-                           bool serve_files) {
+                           bool serve_files,
+                           bool target_wine) {
   auto macros = gdb_rr_macros();
   string gdb_command_file = create_gdb_command_file(macros);
 
@@ -1833,7 +1847,14 @@ void GdbServer::launch_gdb(ScopedFd& params_pipe_fd,
   if (!did_set_remote) {
     push_target_remote_cmd(args, string(params.host), params.port);
   }
-  args.push_back(params.exe_image);
+  if (target_wine) {
+    args.push_back("-ex");
+    args.push_back("sharedlibrary");
+    args.push_back("-ex");
+    args.push_back("handle SIGUSR1 nostop noprint");
+  } else {
+    args.push_back(params.exe_image);
+  }
 
   vector<string> env = current_env();
   env.push_back("GDB_UNDER_RR=1");

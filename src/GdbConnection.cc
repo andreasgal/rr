@@ -421,7 +421,7 @@ static string read_target_desc(const char* file_name) {
   return ss.str();
 }
 
-static const char* target_description_name(uint32_t cpu_features) {
+static const char* target_description_name(uint32_t cpu_features, bool target_wine) {
   // This doesn't scale, but it's what gdb does...
   switch (cpu_features) {
     case 0:
@@ -429,9 +429,9 @@ static const char* target_description_name(uint32_t cpu_features) {
     case GdbConnection::CPU_X86_64:
       return "amd64-linux.xml";
     case GdbConnection::CPU_AVX:
-      return "i386-avx-linux.xml";
+      return target_wine ? "i386-avx-wine.xml" : "i386-avx-linux.xml";
     case GdbConnection::CPU_X86_64 | GdbConnection::CPU_AVX:
-      return "amd64-avx-linux.xml";
+      return target_wine ? "amd64-avx-wine.xml" : "amd64-avx-linux.xml";
     case GdbConnection::CPU_AARCH64:
       return "aarch64-core.xml";
     default:
@@ -526,9 +526,22 @@ bool GdbConnection::xfer(const char* name, char* args) {
     string target_desc =
         read_target_desc((strcmp(annex, "") && strcmp(annex, "target.xml"))
                              ? annex
-                             : target_description_name(cpu_features_));
+                             : target_description_name(cpu_features_, features().target_wine));
     write_xfer_response(target_desc.c_str(), target_desc.size(), offset, len);
     return false;
+  }
+
+  // qXfer:libraries
+  if (!strcmp(name, "libraries")) {
+    if (strcmp(mode, "read")) {
+      write_packet("");
+      return false;
+    }
+
+    req = GdbRequest(DREQ_GET_LIBRARY_LIST);
+    req.library().addr = offset;
+    req.library().len = len;
+    return true;
   }
 
   write_packet("");
@@ -663,7 +676,6 @@ bool GdbConnection::query(char* payload) {
                  ";QStartNoAckMode+"
                  ";qXfer:features:read+"
                  ";qXfer:auxv:read+"
-                 ";qXfer:exec-file:read+"
                  ";qXfer:siginfo:read+"
                  ";qXfer:siginfo:write+"
                  ";multiprocess+"
@@ -671,6 +683,12 @@ bool GdbConnection::query(char* payload) {
                  ";swbreak+"
                  ";ConditionalBreakpoints+"
                  ";vContSupported+";
+    if (features().target_wine) {
+      supported << ";qXfer:libraries:read+";
+    } else {
+      /* Don't announce exec-file, executable gets delivered as library with --target-wine for now. */
+      supported << ";qXfer:exec-file:read+";
+    }
     if (features().reverse_execution) {
       supported << ";ReverseContinue+"
                    ";ReverseStep+";
@@ -1708,6 +1726,29 @@ void GdbConnection::reply_get_thread_list(const vector<GdbThreadId>& threads) {
     str.back() = 0;
     write_packet(str.c_str());
   }
+
+  consume_request();
+}
+
+extern string create_library_response_from_mappings(Task *t);
+
+void GdbConnection::reply_get_library_list(Task *t) {
+  DEBUG_ASSERT(DREQ_GET_LIBRARY_LIST == req.type);
+  auto addr = req.library().addr;
+  auto len = req.library().len;
+  static string str;
+  if (addr == 0) {
+    str = create_library_response_from_mappings(t);
+    LOG(debug) << "GDB library reply: " << str;
+  }
+  string part;
+  if (str.length() < addr + len) {
+    part = "l";
+  } else {
+    part = "m";
+  }
+  part += str.substr(addr, len);
+  write_packet(part.c_str());
 
   consume_request();
 }
