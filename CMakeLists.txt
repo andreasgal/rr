@@ -1449,6 +1449,21 @@ set(TESTS_WITHOUT_PROGRAM
   when
 )
 
+# Add some initial costs for the longest running tests to get them
+# executed first by ctest. That might help to reduce the overall test time.
+# This list is generated after an initially run by:
+#    cat Testing/Temporary/CTestCostData.txt | awk '{print $3 " " $1}' \
+#       | sed 's/-no-syscallbuf//g' | sed 's/-32//g' | sort -n \
+#       | awk '{print $2}' | tail -n 15 | sort -u
+set(TESTS_LONG_RUNNING
+    conditional_breakpoint_offload
+    condvar_stress
+    record_replay
+    reverse_continue_multiprocess
+    thread_open_race
+    timer
+)
+
 if(BUILD_TESTS)
   # Part of the installable testsuite (test files).
   if(INSTALL_TESTSUITE)
@@ -1555,6 +1570,13 @@ if(BUILD_TESTS)
     # The real timeouts are handled by test-monitor
     set_tests_properties(${test}
       PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED" TIMEOUT 1000)
+
+    string(REGEX REPLACE "-no-syscallbuf$" "" base_test "${test}")
+    string(REGEX REPLACE "-32$" "" base_test "${base_test}")
+    list (FIND TESTS_LONG_RUNNING "${base_test}" _index)
+      if (${_index} GREATER -1)
+        set_tests_properties(${test} PROPERTIES COST 60.0)
+      endif()
   endfunction(configure_test)
 
   function(rr_add_test test command testname syscallbuf bin_dir timeout)
