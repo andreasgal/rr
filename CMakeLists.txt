@@ -534,7 +534,7 @@ if (asan)
   set(ASAN_FLAGS "-fsanitize=address")
   set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
 
-  # ==278218==ERROR: AddressSanitizer: requested allocation size 0x20000000000 (0x20000001000 after adjustments for alignment, red zones etc.) exceeds maximum supported size of 0x10000000000 (thread T0)
+  # RecordSession.cc:2048: void rr::strip_outer_ld_preload(std::vector<std::__cxx11::basic_string<char> >&): Assertion `preload_pos == string::npos' failed.
   list(APPEND DISABLED_TESTS nested_detach)
   list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
   list(APPEND DISABLED_TESTS nested_detach-32)
