@@ -534,12 +534,6 @@ if (asan)
   set(ASAN_FLAGS "-fsanitize=address")
   set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
 
-  # ==3452708==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
-  list(APPEND DISABLED_TESTS ignore_nested)
-  list(APPEND DISABLED_TESTS ignore_nested-no-syscallbuf)
-  list(APPEND DISABLED_TESTS ignore_nested-32)
-  list(APPEND DISABLED_TESTS ignore_nested-32-no-syscallbuf)
-
   # ==278218==ERROR: AddressSanitizer: requested allocation size 0x20000000000 (0x20000001000 after adjustments for alignment, red zones etc.) exceeds maximum supported size of 0x10000000000 (thread T0)
   list(APPEND DISABLED_TESTS nested_detach)
   list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
