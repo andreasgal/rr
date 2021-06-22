@@ -540,12 +540,6 @@ if (asan)
   list(APPEND DISABLED_TESTS nested_detach-32)
   list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
 
-  # FAILED: subshell died, no need to longer wait for 'sleeping'
-  list(APPEND DISABLED_TESTS nested_detach_kill)
-  list(APPEND DISABLED_TESTS nested_detach_kill-no-syscallbuf)
-  list(APPEND DISABLED_TESTS nested_detach_kill-32)
-  list(APPEND DISABLED_TESTS nested_detach_kill-32-no-syscallbuf)
-
 endif()
 
 set_source_files_properties(${RR_SOURCES}
