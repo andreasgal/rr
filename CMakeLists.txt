@@ -540,12 +540,6 @@ if (asan)
   list(APPEND DISABLED_TESTS nested_detach-32)
   list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
 
-  # ==249576==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
-  list(APPEND DISABLED_TESTS nested_detach_wait)
-  list(APPEND DISABLED_TESTS nested_detach_wait-no-syscallbuf)
-  list(APPEND DISABLED_TESTS nested_detach_wait-32)
-  list(APPEND DISABLED_TESTS nested_detach_wait-32-no-syscallbuf)
-
   # FAILED: subshell died, no need to longer wait for 'sleeping'
   list(APPEND DISABLED_TESTS nested_detach_kill)
   list(APPEND DISABLED_TESTS nested_detach_kill-no-syscallbuf)
