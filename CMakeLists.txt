@@ -552,12 +552,6 @@ if (asan)
   list(APPEND DISABLED_TESTS nested_detach_kill-32)
   list(APPEND DISABLED_TESTS nested_detach_kill-32-no-syscallbuf)
 
-  # ==3452437==ASan runtime does not come first in initial library list; you should either link runtime to your application or manually preload it with LD_PRELOAD.
-  list(APPEND DISABLED_TESTS record_replay)
-  list(APPEND DISABLED_TESTS record_replay-no-syscallbuf)
-  list(APPEND DISABLED_TESTS record_replay-32)
-  list(APPEND DISABLED_TESTS record_replay-32-no-syscallbuf)
-
 endif()
 
 set_source_files_properties(${RR_SOURCES}
