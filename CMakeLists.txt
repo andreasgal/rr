@@ -534,10 +534,8 @@ if (asan)
   set(ASAN_FLAGS "-fsanitize=address")
   set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
 
-  # RecordSession.cc:2048: void rr::strip_outer_ld_preload(std::vector<std::__cxx11::basic_string<char> >&): Assertion `preload_pos == string::npos' failed.
-  list(APPEND DISABLED_TESTS nested_detach)
+  # timeout 800 exceeded
   list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
-  list(APPEND DISABLED_TESTS nested_detach-32)
   list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
 
 endif()
