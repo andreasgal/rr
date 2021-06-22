@@ -3457,6 +3457,16 @@ static Switchable rec_prepare_syscall_arch(RecordTask* t,
 // All the regular syscalls are handled here.
 #include "SyscallRecordCase.generated"
 
+    case Arch::rseq: {
+      // Hijack rseq and do a noop syscall instead, as a workaround.
+      // Will restore original syscall in postprocessing with ENOSYS.
+      // See https://github.com/rr-debugger/rr/issues/2277.
+      Registers r = t->regs();
+      r.set_original_syscallno(Arch::gettid);
+      t->set_regs(r);
+      return PREVENT_SWITCH;
+    }
+
     case Arch::splice: {
       syscall_state.reg_parameter<loff_t>(2, IN_OUT);
       syscall_state.reg_parameter<loff_t>(4, IN_OUT);
@@ -6079,6 +6089,15 @@ static void rec_process_syscall_arch(RecordTask* t,
                     attr));
       }
       break;
+
+    case Arch::rseq: {
+      // Restore hijacked call. See preprocessing.
+      Registers r = t->regs();
+      r.set_original_syscallno(Arch::rseq);
+      r.set_syscall_result(-ENOSYS);
+      t->set_regs(r);
+      break;
+    }
 
     case Arch::connect: {
       // Restore the registers that we may have altered.
