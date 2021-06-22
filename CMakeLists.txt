@@ -1602,6 +1602,9 @@ if(BUILD_TESTS)
     target_link_libraries(cpuid -lrt)
   endif()
 
+  # The real timeouts are handled by test-monitor
+  set(CTEST_TEST_TIMEOUT 1000)
+
   # Check if we're running on KNL. If so, we allot more time to tests, due to
   # reduced single-core performance.
   exec_program(cat ARGS "/proc/cpuinfo" OUTPUT_VARIABLE CPUINFO)
@@ -1610,12 +1613,10 @@ if(BUILD_TESTS)
     set(TEST_MONITOR_DEFAULT_TIMEOUT 480)
   elseif(asan)
     set(TEST_MONITOR_DEFAULT_TIMEOUT 800)
+    set(CTEST_TEST_TIMEOUT 1400)
   else()
     set(TEST_MONITOR_DEFAULT_TIMEOUT 120)
   endif()
-
-  # The real timeouts are handled by test-monitor
-  set(CTEST_TEST_TIMEOUT 1000)
 
   function(configure_test test)
     set_tests_properties(${test} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
