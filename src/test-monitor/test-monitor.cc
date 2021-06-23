@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -333,6 +334,9 @@ int main(int argc, char* argv[]) {
     return 2;
   }
 
+  struct timeval start, end;
+  gettimeofday(&start, NULL);
+
   struct sigaction sa;
   sa.sa_flags = SA_SIGINFO;
   sa.sa_sigaction = sighandler;
@@ -356,6 +360,26 @@ int main(int argc, char* argv[]) {
     dump_state_and_kill(child, argv[2]);
     abort();
   }
+
+  {
+    char* elapsed_file = getenv("TEST_MONITOR_ELAPSED_FILE");
+    if (elapsed_file) {
+      char* testname = getenv("TESTNAME");
+
+      FILE* f = fopen(elapsed_file, "a");
+      if (!f) {
+        fprintf(stderr, "Couldn't open %s for writing\n", elapsed_file);
+        return 3;
+      }
+
+      gettimeofday(&end, NULL);
+      long secs_used = end.tv_sec - start.tv_sec;
+
+      fprintf(f, "%4d seconds got used in test '%s': %s %s\n", secs_used, testname, argv[3], argv[4]); fflush(f);
+      fclose(f);
+    }
+  }
+
   if (WIFEXITED(status)) {
     return WEXITSTATUS(status);
   }

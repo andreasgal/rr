@@ -96,7 +96,7 @@ GLOBAL_OPTIONS="--suppress-environment-warnings --check-cached-mmaps --fatal-err
 SRCDIR=`dirname ${BASH_SOURCE[0]}`/../..
 SRCDIR=`realpath $SRCDIR`
 
-TESTNAME=$1
+export TESTNAME=$1
 if [[ "$TESTNAME" == "" ]]; then
     [[ $0 =~ ([A-Za-z0-9_]+)\.run$ ]] || fatal "FAILED: bad test script name"
     TESTNAME=${BASH_REMATCH[1]}
