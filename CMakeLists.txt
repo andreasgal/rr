@@ -535,8 +535,8 @@ if (asan)
   set(RR_FLAGS "${ASAN_FLAGS} ${RR_FLAGS}")
 
   # timeout 800 exceeded
-  list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
-  list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
+   list(APPEND DISABLED_TESTS nested_detach-no-syscallbuf)
+   list(APPEND DISABLED_TESTS nested_detach-32-no-syscallbuf)
 
 endif()
 
